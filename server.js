@@ -1,4 +1,3 @@
-
 const http = require('http');
 const fetch = require('node-fetch');
 
@@ -19,7 +18,7 @@ const server = http.createServer((req, res) => {
             if (command === "user_chat") {
                 fetch(WEBHOOK_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type' : 'application/json' },
                     body: JSON.stringify({
                         content: `**${args[0]}:** ${args[1]}`
                     })
@@ -46,4 +45,6 @@ const server = http.createServer((req, res) => {
     res.end("Not Found");
 });
 
-server.listen(process.env.PORT || 3000);
+server.listen(process.env.PORT || 3000, () => {
+    console.log("Сервер запущен на порту 3000");
+});
