@@ -15,7 +15,7 @@ const server = http.createServer((req, res) => {
             const { command, args } = JSON.parse(body);
             
             // Логирование в Discord
-            if (command === "user_chat") {
+            if (command === "user_chat" || command === "inject_notify") {
                 fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
