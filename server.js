@@ -18,7 +18,7 @@ const server = http.createServer((req, res) => {
             if (command === "user_chat") {
                 fetch(WEBHOOK_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type' : 'application/json' },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         content: `**${args[0]}:** ${args[1]}`
                     })
