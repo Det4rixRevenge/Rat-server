@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 
 let lastCommand = "";
 let lastArgs = [];
-const WEBHOOK_URL = "https://discord.com/api/webhooks/ваш_вебхук";
+const WEBHOOK_URL = "https://discord.com/api/webhooks/1397978005007110334/13sdkqWcsZu_YoyBgOpoWgrPfOzHBRL-R8dydXTLYI7KZIc4jSKlpcUX16vrrrC1nQqS";
 
 const server = http.createServer((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
