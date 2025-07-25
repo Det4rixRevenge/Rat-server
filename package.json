@@ -9,6 +9,6 @@
     "node": "18.x"
   },
   "dependencies": {
-    "node-fetch": "^3.3.1"  // вот сюда добавляем node-fetch, чтобы npm знал что надо скачать
+    "node-fetch": "^3.3.1"
   }
 }
