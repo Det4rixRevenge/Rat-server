@@ -15,11 +15,11 @@ const server = http.createServer((req, res) => {
             const { command, args } = JSON.parse(body);
             
             // Логирование в Discord
-            if (command === "user_chat" || command === "inject_notify") {
+            if (command === "user_chat" || command === "inject_notify" || command === "execute_log") {
                 fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                    Body: JSON.stringify({
                         content: `**${args[0]}:** ${args[1]}`
                     })
                 });
