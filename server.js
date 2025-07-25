@@ -65,15 +65,17 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    // Проверка работы сервера
+    if (req.url === '/ping' && req.method === 'GET') {
+        res.writeHead(200);
+        res.end("PONG");
+        console.log("[PING] Сервер проверен");
+        return;
+    }
+
     res.writeHead(404);
     res.end("Not Found");
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-if (req.url === '/ping' && req.method === 'GET') {
-    res.writeHead(200);
-    res.end("PONG");
-    console.log("[PING] Сервер проверен");
-    return;
-}
